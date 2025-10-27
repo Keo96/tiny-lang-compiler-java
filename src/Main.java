@@ -1,3 +1,5 @@
+import icg.Quadruple;
+import icg.TacGenerator;
 import lexer.Lexer;
 import lexer.Token;
 import parser.Parser;
@@ -60,6 +62,20 @@ public class Main {
         if (hadError) {
             System.out.println("\nCompilation failed.");
             return; // Exit the program
+        }
+
+        // --- 4. INTERMEDIATE CODE GENERATION ---
+        System.out.println("\nGenerating Three-Address Code...");
+        TacGenerator tacGen = new TacGenerator();
+        List<Quadruple> quads = tacGen.generate(ast);
+
+        // Print the formatted table
+        System.out.println("\n--- Three-Address Code (Quadruples) ---");
+        System.out.printf("%-10s | %-10s | %-10s | %-10s\n",
+                "Op", "Arg1", "Arg2", "Result");
+        System.out.println("-----------------------------------------------------");
+        for (Quadruple quad : quads) {
+            System.out.println(quad);
         }
     }
 }

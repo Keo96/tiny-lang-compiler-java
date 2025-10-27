@@ -3,9 +3,12 @@ import lexer.Token;
 import parser.Parser;
 import parser.ast.Stmt;
 import parser.AstPrinter;
+import semantic.SemanticAnalyzer;
+
 import java.util.List;
 
 public class Main {
+    static boolean hadError = false; // Global error flag
     public static void main(String[] args) {
         // Your example code from Project.pdf [cite: 289-307]
         String sourceCode = "int x;\n" +
@@ -40,5 +43,23 @@ public class Main {
         System.out.println("\nGenerated Abstract Syntax Tree (AST):");
         AstPrinter printer = new AstPrinter();
         System.out.println(printer.print(ast));
+
+        // --- 3. SEMANTIC ANALYSIS  ---
+        System.out.println("\nAnalyzing semantics (checking logic)...");
+        SemanticAnalyzer analyzer = new SemanticAnalyzer();
+        boolean passedSemanticAnalysis = analyzer.analyze(ast);
+
+        if (!passedSemanticAnalysis) {
+            System.err.println("Semantic errors found. Halting compilation.");
+            hadError = true; // Set our main error flag
+        } else {
+            System.out.println("Semantic analysis passed.");
+        }
+
+        // --- STOP COMPILATION IF THERE WAS ANY ERROR ---
+        if (hadError) {
+            System.out.println("\nCompilation failed.");
+            return; // Exit the program
+        }
     }
 }

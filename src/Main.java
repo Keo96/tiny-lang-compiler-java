@@ -1,5 +1,8 @@
 import lexer.Lexer;
 import lexer.Token;
+import parser.Parser;
+import parser.ast.Stmt;
+import parser.AstPrinter;
 import java.util.List;
 
 public class Main {
@@ -19,6 +22,7 @@ public class Main {
                 "print(x);\n" +
                 "read(y);";
 
+        // --- 1. LEXICAL ANALYSIS ---
         System.out.println("Scanning source code...");
         Lexer lexer = new Lexer(sourceCode);
         List<Token> tokens = lexer.scanTokens();
@@ -27,5 +31,14 @@ public class Main {
         for (Token token : tokens) {
             System.out.println(token);
         }
+
+        // --- 2. SYNTAX ANALYSIS ---
+        System.out.println("\nParsing tokens into AST...");
+        Parser parser = new Parser(tokens);
+        List<Stmt> ast = parser.parse();
+
+        System.out.println("\nGenerated Abstract Syntax Tree (AST):");
+        AstPrinter printer = new AstPrinter();
+        System.out.println(printer.print(ast));
     }
 }

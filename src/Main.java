@@ -2,6 +2,7 @@ import icg.Quadruple;
 import icg.TacGenerator;
 import lexer.Lexer;
 import lexer.Token;
+import optimizer.Optimizer;
 import parser.Parser;
 import parser.ast.Stmt;
 import parser.AstPrinter;
@@ -75,6 +76,20 @@ public class Main {
                 "Op", "Arg1", "Arg2", "Result");
         System.out.println("-----------------------------------------------------");
         for (Quadruple quad : quads) {
+            System.out.println(quad);
+        }
+
+        // --- 5. CODE OPTIMIZATION ---
+        System.out.println("\nOptimizing Three-Address Code...");
+        Optimizer optimizer = new Optimizer();
+        List<Quadruple> optimizedQuads = optimizer.optimize(quads);
+
+        // Print the optimized TAC
+        System.out.println("\n--- Optimized Three-Address Code ---");
+        System.out.printf("%-10s | %-10s | %-10s | %-10s\n",
+                "Op", "Arg1", "Arg2", "Result");
+        System.out.println("-----------------------------------------------------");
+        for (Quadruple quad : optimizedQuads) {
             System.out.println(quad);
         }
     }

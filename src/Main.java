@@ -7,6 +7,7 @@ import parser.Parser;
 import parser.ast.Stmt;
 import parser.AstPrinter;
 import semantic.SemanticAnalyzer;
+import target.TargetCodeGeneration;
 
 import java.util.List;
 
@@ -92,5 +93,12 @@ public class Main {
         for (Quadruple quad : optimizedQuads) {
             System.out.println(quad);
         }
+        // --- 6. TARGET CODE GENERATION ---
+        System.out.println("\nGenerating target stack-based assembly...");
+        TargetCodeGeneration targetGen = new TargetCodeGeneration();
+        List<String> assembly = targetGen.generate(optimizedQuads);
+
+        System.out.println("\n--- Target Stack-Based Assembly ---");
+        assembly.forEach(System.out::println);
     }
 }

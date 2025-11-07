@@ -1,5 +1,6 @@
 package target;
 
+// Use the correct package name for your Quadruple
 import icg.Quadruple;
 
 import java.util.ArrayList;
@@ -10,23 +11,17 @@ import java.util.List;
  * Translates TAC (quadruples) into a simple stack-based assembly.
  *
  * Stack ISA:
- *   LOAD <var>         ; push variable value
- *   PUSH <const>       ; push integer literal
- *   STORE <var>        ; pop -> var
- *   ADD | SUB | MUL | DIV
- *   CMP_LT | CMP_LE | CMP_GT | CMP_GE | CMP_EQ | CMP_NE   ; push 1/0
- *   JMP <label>
- *   JZ <label>         ; jump if top == 0, (non-destructive check assumed)
- *   JNZ <label>        ; jump if top != 0
- *   LABEL <label>
- *   PRINT              ; pop and print
- *   READ <var>         ; read into var
- *
- * Notes:
- * - DECL (variable declarations) are ignored here (backend has no alloc model).
- * - ASSIGN a -> r   becomes:  LOAD/PUSH a ; STORE r
- * - For PRINT, we accept either PRINT x (x in result or arg1).
- * - For IF / IF_FALSE, we expect condition already in a temp or use boolean result from prior CMP_*.
+ * LOAD <var>        ; push variable value
+ * PUSH <const>      ; push integer literal
+ * STORE <var>       ; pop -> var
+ * ADD | SUB
+ * CMP_LT            ; push 1/0
+ * JMP <label>
+ * JZ <label>        ; jump if top == 0 (pop)
+ * JNZ <label>       ; jump if top != 0 (pop)
+ * LABEL <label>
+ * PRINT             ; pop and print
+ * READ <var>        ; read into var
  */
 public class TargetCodeGeneration {
 
@@ -41,127 +36,70 @@ public class TargetCodeGeneration {
 
             switch (op) {
 
-                // ---- housekeeping / declarations ----
-                case "DECL":         // e.g., DECL null null x
-                case "NOP":
-                    // No emission for declarations at this backend level.
-                    break;
-
                 // ---- assignment ----
-                case "ASSIGN": {     // r = a1
+                case "=": { // Changed from ASSIGN
                     emitLoad(asm, a1);
                     asm.add("STORE " + r);
                     break;
                 }
 
                 // ---- arithmetic ----
-                case "ADD": {
+                case "+": { // Changed from ADD
                     emitLoad(asm, a1);
                     emitLoad(asm, a2);
                     asm.add("ADD");
                     asm.add("STORE " + r);
                     break;
                 }
-                case "SUB": {
+                case "-": { // Changed from SUB
                     emitLoad(asm, a1);
                     emitLoad(asm, a2);
                     asm.add("SUB");
                     asm.add("STORE " + r);
                     break;
                 }
-                case "MUL": {
-                    emitLoad(asm, a1);
-                    emitLoad(asm, a2);
-                    asm.add("MUL");
-                    asm.add("STORE " + r);
-                    break;
-                }
-                case "DIV": {
-                    emitLoad(asm, a1);
-                    emitLoad(asm, a2);
-                    asm.add("DIV");
-                    asm.add("STORE " + r);
-                    break;
-                }
+                // (Removed MUL/DIV as TinyLang doesn't have them)
 
-                // ---- relational into boolean temp ----
-                case "LT": {
+                // ---- relational ----
+                case "<": { // Changed from LT
                     emitLoad(asm, a1);
                     emitLoad(asm, a2);
-                    asm.add("CMP_LT");
+                    asm.add("CMP_LT"); // Pushes 1 (true) or 0 (false)
                     asm.add("STORE " + r);
                     break;
                 }
-                case "LE": {
-                    emitLoad(asm, a1);
-                    emitLoad(asm, a2);
-                    asm.add("CMP_LE");
-                    asm.add("STORE " + r);
-                    break;
-                }
-                case "GT": {
-                    emitLoad(asm, a1);
-                    emitLoad(asm, a2);
-                    asm.add("CMP_GT");
-                    asm.add("STORE " + r);
-                    break;
-                }
-                case "GE": {
-                    emitLoad(asm, a1);
-                    emitLoad(asm, a2);
-                    asm.add("CMP_GE");
-                    asm.add("STORE " + r);
-                    break;
-                }
-                case "EQ": {
-                    emitLoad(asm, a1);
-                    emitLoad(asm, a2);
-                    asm.add("CMP_EQ");
-                    asm.add("STORE " + r);
-                    break;
-                }
-                case "NE": {
-                    emitLoad(asm, a1);
-                    emitLoad(asm, a2);
-                    asm.add("CMP_NE");
-                    asm.add("STORE " + r);
-                    break;
-                }
+                // (Removed other comparison ops)
 
                 // ---- branching ----
-                // IF t -> label : jump if true (non-zero)
-                case "IF": {         // IF a1 GOTO r
+                case "IFZ": { // Changed from IF_FALSE
+                    // Quad is: (IFZ, t1, L0, null)
                     emitLoad(asm, a1);
-                    asm.add("JNZ " + r);
-                    break;
-                }
-                // IF_FALSE t -> label : jump if false (zero)
-                case "IF_FALSE": {   // IF_FALSE a1 GOTO r
-                    emitLoad(asm, a1);
-                    asm.add("JZ " + r);
+                    asm.add("JZ " + a2); // Changed from r to a2
                     break;
                 }
 
                 // ---- gotos / labels ----
                 case "GOTO": {
-                    asm.add("JMP " + r);
+                    // Quad is: (GOTO, L1, null, null)
+                    asm.add("JMP " + a1); // Changed from r to a1
                     break;
                 }
                 case "LABEL": {
-                    asm.add("LABEL " + r);
+                    // Quad is: (LABEL, L0, null, null)
+                    asm.add("LABEL " + a1); // Changed from r to a1
                     break;
                 }
 
                 // ---- I/O ----
                 case "PRINT": {
-                    // Accept either result or arg1 as the print operand
-                    String v = (r != null) ? r : a1;
+                    // Quad is: (PRINT, x, null, null)
+                    String v = (r != null) ? r : a1; // Your logic here is good
                     emitLoad(asm, v);
                     asm.add("PRINT");
                     break;
                 }
                 case "READ": {
-                    // READ into result or arg1 (favor result)
+                    // Quad is: (READ, y, null, null)
                     String v = (r != null) ? r : a1;
                     asm.add("READ " + v);
                     break;
@@ -169,6 +107,10 @@ public class TargetCodeGeneration {
 
                 // ---- fallback ----
                 default: {
+                    // Ignore DECL or NOP
+                    if (op.equals("DECL") || op.equals("NOP")) {
+                        break;
+                    }
                     asm.add("; TODO: unrecognized op " + op
                             + " a1=" + String.valueOf(a1)
                             + " a2=" + String.valueOf(a2)
@@ -182,7 +124,7 @@ public class TargetCodeGeneration {
     // helpers
 
     private void emitLoad(List<String> asm, String operand) {
-        if (operand == null || operand.equals("---")) return;
+        if (operand == null || operand.equals("---") || operand.equals("null")) return;
         if (isIntegerLiteral(operand)) {
             asm.add("PUSH " + operand);
         } else {
